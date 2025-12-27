@@ -12,4 +12,4 @@ p.zoom(probability=0.5, min_factor=1.1, max_factor=1.3)
 p.random_brightness(probability=0.5, min_factor=0.7, max_factor=1.3)
 p.random_contrast(probability=0.5, min_factor=0.8, max_factor=1.2)
 
-p.sample(500)  # create 500 variations
+p.sample(84)  # create 500 variations

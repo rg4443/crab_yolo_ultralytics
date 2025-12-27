@@ -103,4 +103,4 @@ auto_augment: randaugment
 erasing: 0.4
 cfg: null
 tracker: botsort.yaml
-save_dir: /Users/rafaelgarcia/Desktop/yolo_ultralytics/runs/detect/train
+save_dir: C:\Users\garci\runs\detect\train

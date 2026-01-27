@@ -1,3 +1,5 @@
+# Convert images to RBG format for labeling (labelimg requires RBG images)
+
 from pathlib import Path
 from PIL import Image
 

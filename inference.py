@@ -4,7 +4,7 @@ import cv2
 video = cv2.VideoCapture(0)
 print("camera opened:", video.isOpened())
 
-model = YOLO("runs/detect/train/weights/best.pt")
+model = YOLO("runs/detect/train2/weights/best.pt")
 
 while True:
     ret, frame = video.read()

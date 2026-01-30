@@ -1,0 +1,4 @@
+train: images/train # specify training images location
+val: images/val # specify training images location
+nc: 1 # number of classes
+names: ["european_crab"] # class names in order (starting at class_id index 0)

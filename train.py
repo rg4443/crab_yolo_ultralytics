@@ -1,4 +1,10 @@
 from ultralytics import YOLO
 
-model = YOLO("yolo11n.pt")
-model.train(data="dataset_v2/data.yaml", epochs=50, imgsz=640)
+# Load a model
+model = YOLO('yolo11n.pt') 
+
+results = model.train(
+    data='dataset_v3/data.yaml',
+    epochs=50,
+    imgsz=640,
+)

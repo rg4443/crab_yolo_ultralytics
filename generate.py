@@ -2,10 +2,9 @@ import albumentations as A
 import cv2
 import os
 import glob
-import random
 
 folders = ['train', 'val']
-multipliers = {'train': 15, 'val': 8} 
+multipliers = {'train': 25, 'val': 10} 
 
 transform = A.Compose([
     A.Rotate(limit=20, p=1.0),                  # Rotation
@@ -17,10 +16,10 @@ transform = A.Compose([
 ], bbox_params=A.BboxParams(format='yolo', min_visibility=0.3, label_fields=['class_labels']))
 
 for split in folders:
-    input_dir = f"data/{split}_parents"
-    label_dir = f"data/{split}_labels"
-    output_img_dir = f"data/{split}_parents"
-    output_lbl_dir = f"data/{split}_labels"
+    input_dir = f"v4/{split}/images"
+    label_dir = f"v4/{split}/labels"
+    output_img_dir = f"v4/{split}/images"
+    output_lbl_dir = f"v4/{split}/labels"
     
     os.makedirs(output_img_dir, exist_ok=True)
     os.makedirs(output_lbl_dir, exist_ok=True)
@@ -68,7 +67,7 @@ for split in folders:
                 # Save Label
                 with open(f"{output_lbl_dir}/{save_name}.txt", 'w') as f:
                     for box, cls in zip(augmented['bboxes'], augmented['class_labels']):
-                        # Clamp again just to be safe for YOLO
+                        # Clamp again just to be safe for yolo
                         x = min(max(box[0], 0), 1)
                         y = min(max(box[1], 0), 1)
                         wd = min(max(box[2], 0), 1)

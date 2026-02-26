@@ -4,7 +4,7 @@ import os
 import glob
 
 folders = ['train', 'val']
-multipliers = {'train': 25, 'val': 10} 
+multipliers = {'train': 40, 'val': 20} 
 
 transform = A.Compose([
     A.Rotate(limit=20, p=1.0),                  # Rotation
@@ -16,10 +16,10 @@ transform = A.Compose([
 ], bbox_params=A.BboxParams(format='yolo', min_visibility=0.3, label_fields=['class_labels']))
 
 for split in folders:
-    input_dir = f"v4/{split}/images"
-    label_dir = f"v4/{split}/labels"
-    output_img_dir = f"v4/{split}/images"
-    output_lbl_dir = f"v4/{split}/labels"
+    input_dir = f"dataset_v5/images/{split}"
+    label_dir = f"dataset_v5/labels/{split}"
+    output_img_dir = f"dataset_v5/images/{split}"
+    output_lbl_dir = f"dataset_v5/labels/{split}"
     
     os.makedirs(output_img_dir, exist_ok=True)
     os.makedirs(output_lbl_dir, exist_ok=True)

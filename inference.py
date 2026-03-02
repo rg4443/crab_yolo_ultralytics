@@ -4,7 +4,7 @@ import cv2
 video = cv2.VideoCapture(0) # may need to change numerical value to video stream url?
 print("camera opened:", video.isOpened())
 
-model = YOLO("runs/detect/train4/weights/best.pt")
+model = YOLO("runs/detect/train5/weights/best.pt")
 
 while True:
     ret, frame = video.read()

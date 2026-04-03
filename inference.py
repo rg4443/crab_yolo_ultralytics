@@ -1,7 +1,7 @@
 from ultralytics import YOLO
 import cv2
 
-video = cv2.VideoCapture(0) # may need to change numerical value to video stream url?
+video = cv2.VideoCapture("udp://192.168.2.1:1984") 
 print("camera opened:", video.isOpened())
 
 model = YOLO("runs/detect/train5/weights/best.pt")

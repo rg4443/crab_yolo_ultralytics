@@ -51,10 +51,10 @@ def run_camera(url, frame, model=None):
 frames = []
 threads = []
 urls = [
-    0, 
-    0, 
-    0, 
-    0,
+    "udp://192.168.2.1:1984?fifo_size=1000000&overrun_nonfatal=1"
+    "udp://192.168.2.1:1985?overrun_nonfatal=1", 
+    "udp://192.168.2.1:1986?overrun_nonfatal=1", 
+    "udp://192.168.2.1:1987?overrun_nonfatal=1",
 ]
 
 for i in range(4):

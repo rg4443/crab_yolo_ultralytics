@@ -37,8 +37,13 @@ def run_camera(url, frame, model=None):
             else:
                 results = model.predict(f)
                 plotted = results[0].plot()
-                # TODO: Count crabs
-                frame.set(results[0].plot())
+
+                # Count Crabs on Upper Left Corner
+                number = len(results[0].boxes)
+                cv2.putText(plotted, f"Green Crabs Detected: {number}", (7, 70), 
+                cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
+
+                frame.set(plotted)
         video.release()
     except Exception as e:
         print(f"ERROR: {e}")

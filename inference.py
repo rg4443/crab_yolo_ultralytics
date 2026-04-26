@@ -1,10 +1,10 @@
 from ultralytics import YOLO
 import cv2
 
-video = cv2.VideoCapture("udp://192.168.2.1:1984") 
+video = cv2.VideoCapture(0) 
 print("camera opened:", video.isOpened())
 
-model = YOLO("runs/detect/train5/weights/best.pt")
+model = YOLO("runs/detect/train6/weights/best.pt")
 
 while True:
     ret, frame = video.read()

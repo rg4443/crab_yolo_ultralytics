@@ -3,23 +3,36 @@ import cv2
 import os
 import glob
 
-folders = ['train', 'val']
-multipliers = {'train': 40, 'val': 20} 
+# Configuration 
+FOLDERS = ['train', 'val'] # Have train and val folders be in the root of the project.
+MULTIPLIERS = {'train': 20, 'val': 20} # For each image create x augmentations.
+DATASET_VERSION_NUM = 6 # Current Dataset iteration.
+
+import albumentations as A
 
 transform = A.Compose([
-    A.Rotate(limit=20, p=1.0),                  # Rotation
-    A.RandomBrightnessContrast(p=1.0),          # Lighting
-    A.HorizontalFlip(p=0.5),                    # Flip half the time
-    A.GaussNoise(var_limit=(10.0, 50.0), p=0.5),# Grain
-    A.Blur(blur_limit=3, p=0.3),                # Slight blur
-    A.RGBShift(r_shift_limit=20, g_shift_limit=20, b_shift_limit=20, p=0.5) # Color shift
+    A.SafeRotate(limit=180, p=0.8), 
+    A.HorizontalFlip(p=0.5),
+    A.VerticalFlip(p=0.5),
+
+    A.RandomResizedCrop(size=(640, 640), scale=(0.4, 1.0), p=0.5),
+
+    A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.6),
+    A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.3, hue=0.1, p=0.4),
+    A.CLAHE(clip_limit=4.0, tile_grid_size=(8, 8), p=0.3), 
+
+    A.GaussNoise(var_limit=(10.0, 40.0), p=0.3),
+    A.MotionBlur(blur_limit=5, p=0.3), 
+
+    A.CoarseDropout(max_holes=8, max_height=16, max_width=16, fill_value=0, p=0.3)
+    
 ], bbox_params=A.BboxParams(format='yolo', min_visibility=0.3, label_fields=['class_labels']))
 
-for split in folders:
-    input_dir = f"dataset_v5/images/{split}"
-    label_dir = f"dataset_v5/labels/{split}"
-    output_img_dir = f"dataset_v5/images/{split}"
-    output_lbl_dir = f"dataset_v5/labels/{split}"
+for split in FOLDERS:
+    input_dir = f"{split}"
+    label_dir = f"{split}"
+    output_img_dir = f"dataset_v{DATASET_VERSION_NUM}/images/{split}"
+    output_lbl_dir = f"dataset_v{DATASET_VERSION_NUM}/labels/{split}"
     
     os.makedirs(output_img_dir, exist_ok=True)
     os.makedirs(output_lbl_dir, exist_ok=True)
@@ -53,7 +66,7 @@ for split in folders:
                     class_labels.append(cls)
         
         # Generate Variations
-        count = multipliers[split]
+        count = MULTIPLIERS[split]
         for i in range(count):
             try:
                 augmented = transform(image=image, bboxes=bboxes, class_labels=class_labels)

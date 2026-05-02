@@ -3,6 +3,7 @@ from ultralytics import YOLO
 import threading
 import numpy as np
 import time
+import csv # For logging
 
 class Frame:
     def __init__(self):
@@ -20,6 +21,28 @@ class Frame:
     def get(self):
         with self.lock:
             return self.frame.copy(), self.latency
+        
+def telemetry_logger(frame_list, filename="vision_performance.csv"):
+    """
+    Background worker that samples system performance every 10 seconds.
+    """
+    print(f"[Telemetry] Logging started. Saving to {filename}")
+    
+    with open(filename, mode='w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(["Timestamp", "Cam0_Latency", "Cam1_Latency", "Cam2_Latency", "Cam3_Latency"])
+
+    while not interrupt:
+        time.sleep(10) 
+        
+        timestamp = time.strftime("%H:%M:%S")
+        current_latencies = [f.get()[1] for f in frame_list]
+        
+        with open(filename, mode='a', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow([timestamp] + current_latencies)
+            
+    print("[Telemetry] Logging stopped.")
 
 def combine(imgs):
     img1 = cv2.resize(imgs[0], (1920, 1080))
@@ -73,10 +96,10 @@ def run_camera(url, frame_obj, model=None, camera_id=0):
 frames = []
 threads = []
 urls = [
-    "udp://192.168.2.1:1984?fifo_size=1000000&overrun_nonfatal=1"
-    "udp://192.168.2.1:1985?overrun_nonfatal=1", 
-    "udp://192.168.2.1:1986?overrun_nonfatal=1", 
-    "udp://192.168.2.1:1987?overrun_nonfatal=1",
+    0,
+    0,
+    0,
+    0
 ]
 
 # Initialize Threads
@@ -86,6 +109,10 @@ for i in range(4):
     threads.append(threading.Thread(target=run_camera, args=(urls[i], frames[i], target_model, i)))
     threads[i].daemon = True # Ensures threads exit when main loop does
     threads[i].start()
+
+log_thread = threading.Thread(target=telemetry_logger, args=(frames,))
+log_thread.daemon = True
+log_thread.start()
 
 print("[System] All Vision Threads Active.")
 

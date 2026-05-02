@@ -2,17 +2,24 @@ import cv2
 from ultralytics import YOLO
 import threading
 import numpy as np
+import time
 
 class Frame:
     def __init__(self):
         self.frame = np.zeros((1080, 1920, 3), dtype=np.uint8)
         self.lock = threading.Lock()
-    def set(self, frame):
+        self.last_update = time.time() 
+        self.latency = 0.0             # For Performance Metrics
+
+    def set(self, frame, start_time):
         with self.lock:
             self.frame = frame.copy()
+            self.last_update = time.time()
+            self.latency = time.time() - start_time
+
     def get(self):
         with self.lock:
-            return self.frame.copy()
+            return self.frame.copy(), self.latency
 
 def combine(imgs):
     img1 = cv2.resize(imgs[0], (1920, 1080))
@@ -25,28 +32,43 @@ def combine(imgs):
 interrupt = False
 model = YOLO("runs/detect/train6/weights/best.pt")
 
-def run_camera(url, frame, model=None):
-    try:
-        video = cv2.VideoCapture(url)
-        while not interrupt:
-            r, f = video.read()
-            if not r or f is None:
-                continue
-            if model is None:
-                frame.set(f)
-            else:
-                results = model.predict(f)
-                plotted = results[0].plot()
+def run_camera(url, frame_obj, model=None, camera_id=0):
+    consecutive_failures = 0
+    max_failures = 30 # ~1 second at 30fps
 
+    while not interrupt:
+        print(f"[Executive] Initializing Stream {camera_id}...")
+        video = cv2.VideoCapture(url)
+        
+        while not interrupt:
+            start_time = time.time()
+            r, f = video.read()
+            
+            if not r or f is None:
+                consecutive_failures += 1
+                if consecutive_failures > max_failures:
+                    print(f"[Watchdog] Stream {camera_id} STALLED. Restarting...")
+                    break 
+                continue
+            
+            consecutive_failures = 0
+            
+            if model and camera_id == 0:
+                results = model.predict(f, verbose=False)
+                f = results[0].plot()
                 # Count Crabs on Upper Left Corner
                 number = len(results[0].boxes)
-                cv2.putText(plotted, f"Green Crabs Detected: {number}", (7, 70), 
+                cv2.putText(f, f"Green Crabs Detected: {number}", (7, 70), 
                 cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
 
-                frame.set(plotted)
+                # Metadata Overlay
+                cv2.putText(f, f"LATENCY: {frame_obj.latency:.3f}s", (7, 130), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            
+            frame_obj.set(f, start_time)
+
         video.release()
-    except Exception as e:
-        print(f"ERROR: {e}")
+        time.sleep(1) # Cool-down before restart
 
 frames = []
 threads = []
@@ -57,29 +79,30 @@ urls = [
     "udp://192.168.2.1:1987?overrun_nonfatal=1",
 ]
 
+# Initialize Threads
 for i in range(4):
     frames.append(Frame())
-    if i == 0:
-        threads.append(threading.Thread(target=run_camera, args=(urls[i], frames[i], model)))
-    else:
-        threads.append(threading.Thread(target=run_camera, args=(urls[i], frames[i])))
+    target_model = model if i == 0 else None
+    threads.append(threading.Thread(target=run_camera, args=(urls[i], frames[i], target_model, i)))
+    threads[i].daemon = True # Ensures threads exit when main loop does
     threads[i].start()
+
+print("[System] All Vision Threads Active.")
 
 while not interrupt:
     try:
-        copies = [f.get() for f in frames]
-        if len(copies) == 4: 
-            combined = combine(copies)
-            cv2.imshow('Frontend', combined)
+        raw_data = [f.get() for f in frames]
+        imgs = [data[0] for data in raw_data]
+        latencies = [data[1] for data in raw_data]
+
+        if len(imgs) == 4: 
+            combined = combine(imgs)
+            cv2.imshow('Slugbotics Flight Deck', combined)
+            
         if cv2.waitKey(1) & 0xFF == ord('q'):
             interrupt = True
-    except KeyboardInterrupt:
-        interrupt = True
     except Exception as e:
-        print(f'ERROR: {e}')
+        print(f'[CRITICAL ERROR] {e}')
         interrupt = True
 
-for t in threads:
-    t.join()
 cv2.destroyAllWindows()
-print()

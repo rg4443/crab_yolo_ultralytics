@@ -19,7 +19,7 @@ class Frame:
 
     def get(self):
         with self.lock:
-            return self.frame.copy(), self.latency
+            return self.frame, self.latency
         
 def telemetry_logger(frame_list, filename="vision_performance.csv"):
     """

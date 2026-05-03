@@ -5,7 +5,7 @@ import glob
 
 # Configuration 
 FOLDERS = ['train', 'val'] # Have train and val folders be in the root of the project.
-MULTIPLIERS = {'train': 20, 'val': 20} # For each image create x augmentations.
+MULTIPLIERS = {'train': 2, 'val': 1} # For each image create x augmentations. (DO NOT CHANGE THE VAL)
 DATASET_VERSION_NUM = 6 # Current Dataset iteration.
 
 import albumentations as A
@@ -31,8 +31,8 @@ transform = A.Compose([
 for split in FOLDERS:
     input_dir = f"{split}"
     label_dir = f"{split}"
-    output_img_dir = f"dataset_v{DATASET_VERSION_NUM}/images/{split}"
-    output_lbl_dir = f"dataset_v{DATASET_VERSION_NUM}/labels/{split}"
+    output_img_dir = f"dataset_v{7}/images/{split}"
+    output_lbl_dir = f"dataset_v{7}/labels/{split}"
     
     os.makedirs(output_img_dir, exist_ok=True)
     os.makedirs(output_lbl_dir, exist_ok=True)
@@ -69,12 +69,19 @@ for split in FOLDERS:
         count = MULTIPLIERS[split]
         for i in range(count):
             try:
-                augmented = transform(image=image, bboxes=bboxes, class_labels=class_labels)
-                
-                # Save Image
-                save_name = f"aug_{filename_only}{i}{file_extension}"
-                
-                final_img = cv2.cvtColor(augmented['image'], cv2.COLOR_RGB2BGR)
+                if split == 'train':
+                    augmented = transform(image=image, bboxes=bboxes, class_labels=class_labels)
+                    final_img = cv2.cvtColor(augmented['image'], cv2.COLOR_RGB2BGR)
+                    final_bboxes = augmented['bboxes']
+                    final_class_labels = augmented['class_labels']
+                    save_name = f"aug_{filename_only}{i}"
+                else:
+                    # For 'val', use the original image and labels as-is
+                    final_img = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+                    final_bboxes = bboxes
+                    final_class_labels = class_labels
+                    save_name = f"{filename_only}" # Keep original name for val
+
                 cv2.imwrite(f"{output_img_dir}/{save_name}.jpg", final_img)
                 
                 # Save Label

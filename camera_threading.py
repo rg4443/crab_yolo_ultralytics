@@ -165,3 +165,5 @@ finally:
         print("[System] Telemetry data flushed to disk.")
 
     cv2.destroyAllWindows()
+
+# Larive called me up and sent me on da go.

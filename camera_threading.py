@@ -21,6 +21,8 @@ class Frame:
         with self.lock:
             return self.frame, self.latency
         
+ENABLE_LOGGING = False
+        
 def telemetry_logger(frame_list, filename="vision_performance.csv"):
     """
     Background worker that samples system performance every 10 seconds.
@@ -117,9 +119,12 @@ for i in range(4):
     threads[i].daemon = True # Ensures threads exit when main loop does
     threads[i].start()
 
-log_thread = threading.Thread(target=telemetry_logger, args=(frames,))
-log_thread.daemon = True
-log_thread.start()
+log_thread = None
+
+if ENABLE_LOGGING:
+    log_thread = threading.Thread(target=telemetry_logger, args=(frames,))
+    log_thread.daemon = True
+    log_thread.start()
 
 print("[System] All Vision Threads Active.")
 
@@ -155,7 +160,8 @@ finally:
         t.join(timeout=2.0) 
         print(f"[System] Video Stream {i} released.")
 
-    log_thread.join(timeout=2.0)
-    print("[System] Telemetry data flushed to disk.")
+    if log_thread:
+        log_thread.join(timeout=2.0)
+        print("[System] Telemetry data flushed to disk.")
 
     cv2.destroyAllWindows()

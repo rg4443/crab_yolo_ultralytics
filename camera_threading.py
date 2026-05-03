@@ -56,50 +56,61 @@ interrupt = False
 model = YOLO("runs/detect/train6/weights/best.pt")
 
 def run_camera(url, frame_obj, model=None, camera_id=0):
-    consecutive_failures = 0
-    max_failures = 30 # ~1 second at 30fps
+    global interrupt
+
+    retry_count = 0
 
     while not interrupt:
         print(f"[Executive] Initializing Stream {camera_id}...")
+
+        wait_time = min(retry_count * 2, 10) 
+        if retry_count > 0:
+            print(f"[Executive] Retry {retry_count} for Stream {camera_id} in {wait_time}s...")
+            time.sleep(wait_time)
+
         video = cv2.VideoCapture(url)
         
+        # Heartbeat tracking
+        last_heartbeat = time.time()
+        timeout_threshold = 2.0  # If no frames for 2 seconds, it's a "Stall"
+
         while not interrupt:
-            start_time = time.time()
             r, f = video.read()
+            start_time = time.time()
             
-            if not r or f is None:
-                consecutive_failures += 1
-                if consecutive_failures > max_failures:
-                    print(f"[Watchdog] Stream {camera_id} STALLED. Restarting...")
-                    break 
-                continue
-            
-            consecutive_failures = 0
-            
-            if model and camera_id == 0:
-                results = model.predict(f, verbose=False)
-                f = results[0].plot()
-                # Count Crabs on Upper Left Corner
-                number = len(results[0].boxes)
-                cv2.putText(f, f"Green Crabs Detected: {number}", (7, 70), 
-                cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
+            # Only update the heartbeat if the read was successful
+            if r and f is not None:
+                last_heartbeat = time.time()
+                
+                if model and camera_id == 0:
+                    results = model.predict(f, verbose=False)
+                    f = results[0].plot()
 
-                # Metadata Overlay
-                cv2.putText(f, f"LATENCY: {frame_obj.latency:.3f}s", (7, 130), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-            
-            frame_obj.set(f, start_time)
+                    # Count Crabs on Upper Left Corner
+                    number = len(results[0].boxes)
+                    cv2.putText(f, f"Green Crabs Detected: {number}", (7, 70), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
 
+                    # Metadata Overlay
+                    cv2.putText(f, f"LATENCY: {frame_obj.latency:.3f}s", (7, 130), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                
+                frame_obj.set(f, start_time)
+
+            if (time.time() - last_heartbeat) > timeout_threshold:
+                print(f"[Watchdog] Stream {camera_id} HEARTBEAT LOST. Auto-Recovering...")
+                break 
+                
         video.release()
-        time.sleep(1) # Cool-down before restart
+        time.sleep(1) 
 
 frames = []
 threads = []
 urls = [
-    0,
-    0,
-    0,
-    0
+    "udp://192.168.2.1:1984?fifo_size=1000000&overrun_nonfatal=1"
+    "udp://192.168.2.1:1985?overrun_nonfatal=1", 
+    "udp://192.168.2.1:1986?overrun_nonfatal=1", 
+    "udp://192.168.2.1:1987?overrun_nonfatal=1",
 ]
 
 # Initialize Threads
@@ -125,9 +136,10 @@ while not interrupt:
         if len(imgs) == 4: 
             combined = combine(imgs)
             cv2.imshow('Slugbotics Flight Deck', combined)
-            
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            interrupt = True
+        
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('q'): interrupt = True
+
     except Exception as e:
         print(f'[CRITICAL ERROR] {e}')
         interrupt = True

@@ -31,8 +31,8 @@ transform = A.Compose([
 for split in FOLDERS:
     input_dir = f"{split}"
     label_dir = f"{split}"
-    output_img_dir = f"dataset_v{7}/images/{split}"
-    output_lbl_dir = f"dataset_v{7}/labels/{split}"
+    output_img_dir = f"dataset_v{DATASET_VERSION_NUM}/images/{split}"
+    output_lbl_dir = f"dataset_v{DATASET_VERSION_NUM}/labels/{split}"
     
     os.makedirs(output_img_dir, exist_ok=True)
     os.makedirs(output_lbl_dir, exist_ok=True)

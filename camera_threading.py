@@ -10,13 +10,12 @@ class Frame:
         self.frame = np.zeros((1080, 1920, 3), dtype=np.uint8)
         self.lock = threading.Lock()
         self.last_update = time.time() 
-        self.latency = 0.0             # For Performance Metrics
+        self.latency = time.time()            # For Performance Metrics
 
     def set(self, frame, start_time):
         with self.lock:
             self.frame = frame.copy()
-            self.last_update = time.time()
-            self.latency = time.time() - start_time
+            self.latency = start_time
 
     def get(self):
         with self.lock:
@@ -36,7 +35,8 @@ def telemetry_logger(frame_list, filename="vision_performance.csv"):
         time.sleep(10) 
         
         timestamp = time.strftime("%H:%M:%S")
-        current_latencies = [f.get()[1] for f in frame_list]
+        now = time.time()
+        current_latencies = [now - f.get()[1] for f in frame_list]
         
         with open(filename, mode='a', newline='') as f:
             writer = csv.writer(f)
@@ -75,8 +75,8 @@ def run_camera(url, frame_obj, model=None, camera_id=0):
         timeout_threshold = 2.0  # If no frames for 2 seconds, it's a "Stall"
 
         while not interrupt:
-            r, f = video.read()
             start_time = time.time()
+            r, f = video.read()
             
             # Only update the heartbeat if the read was successful
             if r and f is not None:
@@ -90,10 +90,6 @@ def run_camera(url, frame_obj, model=None, camera_id=0):
                     number = len(results[0].boxes)
                     cv2.putText(f, f"Green Crabs Detected: {number}", (7, 70), 
                                 cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
-
-                    # Metadata Overlay
-                    cv2.putText(f, f"LATENCY: {frame_obj.latency:.3f}s", (7, 130), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
                 
                 frame_obj.set(f, start_time)
 
@@ -107,10 +103,10 @@ def run_camera(url, frame_obj, model=None, camera_id=0):
 frames = []
 threads = []
 urls = [
-    "udp://192.168.2.1:1984?fifo_size=1000000&overrun_nonfatal=1"
-    "udp://192.168.2.1:1985?overrun_nonfatal=1", 
-    "udp://192.168.2.1:1986?overrun_nonfatal=1", 
-    "udp://192.168.2.1:1987?overrun_nonfatal=1",
+    0,
+    0,
+    0,
+    0
 ]
 
 # Initialize Threads
@@ -127,21 +123,39 @@ log_thread.start()
 
 print("[System] All Vision Threads Active.")
 
-while not interrupt:
-    try:
+try:
+    while not interrupt:
         raw_data = [f.get() for f in frames]
         imgs = [data[0] for data in raw_data]
-        latencies = [data[1] for data in raw_data]
+        current_latencies = [time.time() - data[1] for data in raw_data]
 
         if len(imgs) == 4: 
             combined = combine(imgs)
-            cv2.imshow('Slugbotics Flight Deck', combined)
+            
+            # Metadata Overlay (for data collection)
+            cv2.putText(combined, f"Latency: {current_latencies[0]:.3f}s", (7, 130), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            
+            cv2.imshow('Slugbotics Camera View', combined)
         
         key = cv2.waitKey(1) & 0xFF
         if key == ord('q'): interrupt = True
 
-    except Exception as e:
-        print(f'[CRITICAL ERROR] {e}')
-        interrupt = True
+except KeyboardInterrupt:
+    print("\n[System] User-initiated interrupt (Ctrl+C). Shutting down...")
 
-cv2.destroyAllWindows()
+except Exception as e:
+    print(f'[CRITICAL ERROR] {e}')
+
+finally: 
+    interrupt = True
+    print("[System] Shutdown signaled. Beginning exit.")
+
+    for i, t in enumerate(threads):
+        t.join(timeout=2.0) 
+        print(f"[System] Video Stream {i} released.")
+
+    log_thread.join(timeout=2.0)
+    print("[System] Telemetry data flushed to disk.")
+
+    cv2.destroyAllWindows()

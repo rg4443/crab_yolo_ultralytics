@@ -1,5 +1,3 @@
-# crab_yolo_ultralytics
-
 A YOLO11-based computer vision pipeline for detecting **invasive European green crabs** (_Carcinus maenas_) underwater, built for the **MATE ROV Global Competition** by Slugbotics.
 
 The repo covers the full loop: raw image collection -> labeling -> augmentation -> dataset versioning -> training -> real-time multi-camera inference on the ROV.
@@ -66,8 +64,8 @@ The dataset went through six iterations before the model was usable on real ROV 
 ## Setup
 
 ```bash
-git clone https://github.com/rg4443/crab_yolo_ultralytics.git
-cd crab_yolo_ultralytics
+git clone https://github.com/rg4443/green-crab-detector.git
+cd green-crab-detector
 pip install -r requirements.txt
 ```
 

@@ -1,3 +1,5 @@
+![Live green crab detection demo](assets/detection_demo.gif)
+
 A YOLO11-based computer vision pipeline for detecting **invasive European green crabs** (_Carcinus maenas_) underwater, built for the **MATE ROV Global Competition** by Slugbotics.
 
 The repo covers the full loop: raw image collection -> labeling -> augmentation -> dataset versioning -> training -> real-time multi-camera inference on the ROV.
